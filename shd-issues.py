@@ -89,14 +89,14 @@ if (json_events['ResponseMetadata']['HTTPStatusCode']) == 200:
                 isItemResponse = response.get('Item')
                 if isItemResponse == None:
                   print ("record not found")
-                    response = SHDIssuesTable.put_item(
-                      Item ={
-                        'arn' : strArn,
-                        'lastUpdatedTime' : strUpdate,
-                        'added' : now,
-                        'ttl' : int(now) + int(intSeconds) + 3600
-                      }
-                    )
+                  response = SHDIssuesTable.put_item(
+                    Item ={
+                      'arn' : strArn,
+                      'lastUpdatedTime' : strUpdate,
+                      'added' : now,
+                      'ttl' : int(now) + int(intSeconds) + 3600
+                    }
+                  )
 
             else:
               item = response['Item']
