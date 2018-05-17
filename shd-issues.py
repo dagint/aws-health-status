@@ -2,7 +2,7 @@
 
 import boto3
 import json
-#import decimal
+import decimal
 #import string
 #import time
 from datetime import datetime
@@ -13,17 +13,17 @@ from botocore.exceptions import ClientError
 #used to determine if event is related to something in SHD
 strSuffix = "_OPERATIONAL_ISSUE"
 # ignore events past the x number of seconds 14400 = 4 hours
-intSeconds = 86400 #14400
+intSeconds = 2 * 86400 #14400
 #set standard date time format used throughout
-strDTMFormat = "%Y-%m-%d %H:%M:%S"
+strDTMFormat2 = "%Y-%m-%d %H:%M:%S"
+strDTMFormat = '%s'
+# if left blank it will use all regions.  if you are specifying specific regions use comma's with no spaces
+# if you are interested in global services you will need to include them in the list
+# example strRegions = "us-east-1,us-east-2,global"
+#strRegions = 'us-east-1,us-east-2'
 
 def diff_dates(strDate1, strDate2):
-    intSecs = 0
-    strDate1 = datetime.strptime(strDate1, strDTMFormat)
-    strDate2 = datetime.strptime(strDate2, strDTMFormat)
-    if abs(strDate2-strDate1).days >= 1:
-        intSecs = abs(strDate2-strDate1).days * 86400
-    intSecs = intSecs + abs(strDate2-strDate1).seconds
+    intSecs = float(strDate2)-float(strDate1)
     return intSecs
 
 class DatetimeEncoder(json.JSONEncoder):
@@ -33,30 +33,29 @@ class DatetimeEncoder(json.JSONEncoder):
         except TypeError:
             return str(obj)
 
-#matches aws health api json date format
-def default(obj):
-    """Default JSON serializer."""
-    import calendar, datetime
-
-    if isinstance(obj, datetime.datetime):
-        if obj.utcoffset() is not None:
-            obj = obj - obj.utcoffset()
-        millis = int(
-            calendar.timegm(obj.timetuple()) * 1000 +
-            obj.microsecond / 1000
-        )
-        return millis
-    raise TypeError('Not sure how to serialize %s' % (obj,))
+# Helper class to convert a DynamoDB item to JSON.
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, decimal.Decimal):
+            if o % 1 > 0:
+                return float(o)
+            else:
+                return int(o)
+        return super(DecimalEncoder, self).default(o)
 
 # creates health object as client
 client = boto3.client('health')
 
+dynamodb = boto3.resource("dynamodb", region_name='us-east-1')
+
+SHDIssuesTable = dynamodb.Table('SHD_operational_issues')
+
+strFilter = {'eventTypeCategories': ['issue',]}
+
 response = client.describe_events (
-  filter={
-    'eventTypeCategories': [
-      'issue',
-    ]
-  },
+  filter=
+    strFilter
+  ,
 )
 
 json_pre = json.dumps(response, cls=DatetimeEncoder)
@@ -73,8 +72,78 @@ if (json_events['ResponseMetadata']['HTTPStatusCode']) == 200:
             strUpdate = strUpdate.strftime(strDTMFormat)
             now = datetime.strftime(datetime.now(),strDTMFormat)
             if diff_dates(strUpdate, now) < intSeconds:
-                print diff_dates(strUpdate, now),' ',strUpdate,' ', now
-                print "%s %s" % (strArn, strUpdate)
+		try: 
+		  response = SHDIssuesTable.get_item(
+		    Key = {
+			  'arn' : strArn
+  		    }
+		)
+		except ClientError as e:
+		  print(e.response['Error']['Message'])
+		else:
+		  #print response
+		  isItemResponse = response.get('Item')
+		  if isItemResponse == None:
+		     print "record not found"
+		     response = SHDIssuesTable.put_item(
+                     Item ={
+                        'arn' : strArn,
+                        'lastUpdatedTime' : strUpdate,
+                        'added' : now
+                        }
+                     )
+
+		  else:
+		     item = response['Item']
+		     if item['lastUpdatedTime'] != strUpdate:
+			print "last Update is different"
+			event_details = client.describe_event_details (
+                	  eventArns=[
+                    	    strArn,
+                          ]   
+                        )
+                        json_event_details = json.dumps(event_details, cls=DatetimeEncoder)
+                        parsed_event_details = json.loads (json_event_details)
+			print 'startTime: ',(event['startTime'])
+			print 'lastUpdatedTime: ',(event['lastUpdatedTime'])
+			print 'eventTypeCategory: ',(event['eventTypeCategory'])
+			print 'service: ',(event['service'])
+			print 'region: ',(event['region'])
+			print 'statusCode: ',(event['statusCode'])
+			print (parsed_event_details['successfulSet'][0]['eventDescription']['latestDescription'])#print parsed_event_details
+			response = SHDIssuesTable.put_item(
+                        Item ={
+                          'arn' : strArn,
+                          'lastUpdatedTime' : strUpdate,
+                          'added' : now
+                          }
+                        )
+
+		     #print("GetItem succeeded:")
+		     #print(json.dumps(item, indent=4, cls=DecimalEncoder))
+                #print len(response)
+		bFound = False
+		#isItemResponse = response.get('Item')
+		#print isItemResponse
+		#if isItemResponse == None:
+	          #print "record not found"
+		#response = SHDIssuesTable.put_item(
+		  #  Item ={
+                  #      'arn' : strArn,
+                  #      'lastUpdatedTime' : strUpdate,
+		  #	'added' : now
+                  #      }
+                  #)
+
+		#else: 	
+                #   for i in response[u'Items']:
+		#      if i.arn == strArn :
+		#         print "arn match"
+		      #if int(i.lastupdate) != int(strUpdate):
+		      #   print "last update does not match"
+	
+		#print diff_dates(strUpdate, now),' ',strUpdate,' ', now
+                #print "%s %s" % (strArn, strUpdate)
                 event_details = client.describe_event_details (
                 eventArns=[
                     strArn,
@@ -84,4 +153,4 @@ if (json_events['ResponseMetadata']['HTTPStatusCode']) == 200:
                 parsed_event_details = json.loads (json_event_details)
                 #print (parsed_event_details['successfulSet'][0]['eventDescription']['latestDescription'])#print parsed_event_details
 else:
-    print datetime.now().strftime(strDTMFormat),"- API call was not successful:",(json_events['ResponseMetadata']['HTTPStatusCode'])
+    print datetime.now().strftime(strDTMFormat2),"- API call was not successful:",(json_events['ResponseMetadata']['HTTPStatusCode'])
