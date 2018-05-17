@@ -88,7 +88,7 @@ if (json_events['ResponseMetadata']['HTTPStatusCode']) == 200:
                 #print response
                 isItemResponse = response.get('Item')
                 if isItemResponse == None:
-                  print "record not found"
+                  print ("record not found")
                     response = SHDIssuesTable.put_item(
                       Item ={
                         'arn' : strArn,
@@ -119,7 +119,7 @@ if (json_events['ResponseMetadata']['HTTPStatusCode']) == 200:
                 Service = (event['service'])
                 eventName = str(eventTypeCode), ' - ', str(Service), ' - ', str(region)
                 healthMessage = '\n' + healthMessage + '\n\nService: ' + str(Service) + '\nRegion: ' + str(region) + '\nStatus: ' + str(statusCode)
-                print healthMessage
+                print (healthMessage)
                 response = SHDIssuesTable.put_item(
                   Item ={
                     'arn' : strArn,
@@ -167,4 +167,4 @@ if (json_events['ResponseMetadata']['HTTPStatusCode']) == 200:
                             #parsed_event_details = json.loads (json_event_details)
                             #print (parsed_event_details['successfulSet'][0]['eventDescription']['latestDescription'])#print parsed_event_details
 else:
-  print datetime.now().strftime(strDTMFormat2),"- API call was not successful:",(json_events['ResponseMetadata']['HTTPStatusCode'])
+  print (datetime.now().strftime(strDTMFormat2),"- API call was not successful:",(json_events['ResponseMetadata']['HTTPStatusCode']))
