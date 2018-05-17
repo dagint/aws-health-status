@@ -101,7 +101,7 @@ if (json_events['ResponseMetadata']['HTTPStatusCode']) == 200:
             else:
               item = response['Item']
               if item['lastUpdatedTime'] != strUpdate:
-                print "last Update is different"
+                print ("last Update is different")
                 event_details = client.describe_event_details (
                   eventArns=[
                     strArn,
