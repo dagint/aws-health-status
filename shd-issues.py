@@ -76,95 +76,95 @@ if (json_events['ResponseMetadata']['HTTPStatusCode']) == 200:
             strUpdate = strUpdate.strftime(strDTMFormat)
             now = datetime.strftime(datetime.now(),strDTMFormat)
             if diff_dates(strUpdate, now) < intSeconds:
-        try:
-      response = SHDIssuesTable.get_item(
-        Key = {
-        'arn' : strArn
-          }
-    )
-    except ClientError as e:
-      print(e.response['Error']['Message'])
-    else:
-      #print response
-      isItemResponse = response.get('Item')
-      if isItemResponse == None:
-         print "record not found"
-         response = SHDIssuesTable.put_item(
-                     Item ={
+              try:
+                response = SHDIssuesTable.get_item(
+                  Key = {
+                    'arn' : strArn
+                  }
+                )
+              except ClientError as e:
+                print(e.response['Error']['Message'])
+              else:
+                #print response
+                isItemResponse = response.get('Item')
+                if isItemResponse == None:
+                  print "record not found"
+                    response = SHDIssuesTable.put_item(
+                      Item ={
                         'arn' : strArn,
                         'lastUpdatedTime' : strUpdate,
                         'added' : now,
-      'ttl' : int(now) + int(intSeconds) + 3600
-                        }
-                     )
+                        'ttl' : int(now) + int(intSeconds) + 3600
+                      }
+                    )
 
-      else:
-         item = response['Item']
-         if item['lastUpdatedTime'] != strUpdate:
-      print "last Update is different"
-      event_details = client.describe_event_details (
-                    eventArns=[
-                          strArn,
-                          ]   
-                        )
-                        json_event_details = json.dumps(event_details, cls=DatetimeEncoder)
-                        parsed_event_details = json.loads (json_event_details)
-      healthMessage = (parsed_event_details['successfulSet'][0]['eventDescription']['latestDescription'])#print parsed_event_deta
-      statusCode = (event['statusCode'])
-      region = (event['region'])
-      eventTypeCode = (event['eventTypeCode'])
-      startTime = (event['startTime'])
-      lastUpdatedTime = (event['lastUpdatedTime'])
-      Category = (event['eventTypeCategory'])
-      Service = (event['service'])
-      eventName = str(eventTypeCode), ' - ', str(Service), ' - ', str(region)
-      healthMessage = '\n' + healthMessage + '\n\nService: ' + str(Service) + '\nRegion: ' + str(region) + '\nStatus: ' + str(statusCode)
-      print healthMessage
-      response = SHDIssuesTable.put_item(
-                        Item ={
-                          'arn' : strArn,
-                          'lastUpdatedTime' : strUpdate,
-                          'added' : now,
-        'ttl' : int(now) + int(intSeconds) +  3600
-                          }
-                        )
-      snsPub = snsClient.publish(
-        Message = str(healthMessage),
-        Subject = str(eventName),
-        TopicArn = snsTopic
-                        )
-         #print("GetItem succeeded:")
-         #print(json.dumps(item, indent=4, cls=DecimalEncoder))
+            else:
+              item = response['Item']
+              if item['lastUpdatedTime'] != strUpdate:
+                print "last Update is different"
+                event_details = client.describe_event_details (
+                  eventArns=[
+                    strArn,
+                  ]   
+                )
+                json_event_details = json.dumps(event_details, cls=DatetimeEncoder)
+                parsed_event_details = json.loads (json_event_details)
+                healthMessage = (parsed_event_details['successfulSet'][0]['eventDescription']['latestDescription'])#print parsed_event_deta
+                statusCode = (event['statusCode'])
+                region = (event['region'])
+                eventTypeCode = (event['eventTypeCode'])
+                startTime = (event['startTime'])
+                lastUpdatedTime = (event['lastUpdatedTime'])
+                Category = (event['eventTypeCategory'])
+                Service = (event['service'])
+                eventName = str(eventTypeCode), ' - ', str(Service), ' - ', str(region)
+                healthMessage = '\n' + healthMessage + '\n\nService: ' + str(Service) + '\nRegion: ' + str(region) + '\nStatus: ' + str(statusCode)
+                print healthMessage
+                response = SHDIssuesTable.put_item(
+                  Item ={
+                    'arn' : strArn,
+                    'lastUpdatedTime' : strUpdate,
+                    'added' : now,
+                    'ttl' : int(now) + int(intSeconds) +  3600
+                  }
+                )
+                snsPub = snsClient.publish(
+                  Message = str(healthMessage),
+                  Subject = str(eventName),
+                  TopicArn = snsTopic
+                )
+                #print("GetItem succeeded:")
+                #print(json.dumps(item, indent=4, cls=DecimalEncoder))
                 #print len(response)
-    #bFound = False
-    #isItemResponse = response.get('Item')
-    #print isItemResponse
-    #if isItemResponse == None:
-            #print "record not found"
-    #response = SHDIssuesTable.put_item(
-      #  Item ={
-                  #      'arn' : strArn,
-                  #      'lastUpdatedTime' : strUpdate,
-      # 'added' : now
-                  #      }
-                  #)
+                #bFound = False
+                #isItemResponse = response.get('Item')
+                #print isItemResponse
+                #if isItemResponse == None:
+                        #print "record not found"
+                #response = SHDIssuesTable.put_item(
+                  #  Item ={
+                              #      'arn' : strArn,
+                              #      'lastUpdatedTime' : strUpdate,
+                  # 'added' : now
+                              #      }
+                              #)
 
-    #else:  
-                #   for i in response[u'Items']:
-    #      if i.arn == strArn :
-    #         print "arn match"
-          #if int(i.lastupdate) != int(strUpdate):
-          #   print "last update does not match"
-  
-    #print diff_dates(strUpdate, now),' ',strUpdate,' ', now
-                #print "%s %s" % (strArn, strUpdate)
-                #event_details = client.describe_event_details (
-                #eventArns=[
-                #    strArn,
-                #    ]
-                #)
-                #json_event_details = json.dumps(event_details, cls=DatetimeEncoder)
-                #parsed_event_details = json.loads (json_event_details)
-                #print (parsed_event_details['successfulSet'][0]['eventDescription']['latestDescription'])#print parsed_event_details
+                #else:  
+                            #   for i in response[u'Items']:
+                #      if i.arn == strArn :
+                #         print "arn match"
+                      #if int(i.lastupdate) != int(strUpdate):
+                      #   print "last update does not match"
+              
+                #print diff_dates(strUpdate, now),' ',strUpdate,' ', now
+                            #print "%s %s" % (strArn, strUpdate)
+                            #event_details = client.describe_event_details (
+                            #eventArns=[
+                            #    strArn,
+                            #    ]
+                            #)
+                            #json_event_details = json.dumps(event_details, cls=DatetimeEncoder)
+                            #parsed_event_details = json.loads (json_event_details)
+                            #print (parsed_event_details['successfulSet'][0]['eventDescription']['latestDescription'])#print parsed_event_details
 else:
-    print datetime.now().strftime(strDTMFormat2),"- API call was not successful:",(json_events['ResponseMetadata']['HTTPStatusCode'])
+  print datetime.now().strftime(strDTMFormat2),"- API call was not successful:",(json_events['ResponseMetadata']['HTTPStatusCode'])
