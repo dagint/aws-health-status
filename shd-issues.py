@@ -13,10 +13,12 @@ from botocore.exceptions import ClientError
 #used to determine if event is related to something in SHD
 strSuffix = "_OPERATIONAL_ISSUE"
 # ignore events past the x number of seconds 14400 = 4 hours
-intSeconds = 2 * 86400 #14400
+intSeconds = 14400 #14400
 #set standard date time format used throughout
 strDTMFormat2 = "%Y-%m-%d %H:%M:%S"
 strDTMFormat = '%s'
+
+snsTopic = "arn:aws:sns:us-east-1:505657850914:page-ginterm"
 # if left blank it will use all regions.  if you are specifying specific regions use comma's with no spaces
 # if you are interested in global services you will need to include them in the list
 # example strRegions = "us-east-1,us-east-2,global"
@@ -48,6 +50,8 @@ client = boto3.client('health')
 
 dynamodb = boto3.resource("dynamodb", region_name='us-east-1')
 
+snsClient = boto3.client('sns')
+
 SHDIssuesTable = dynamodb.Table('SHD_operational_issues')
 
 strFilter = {'eventTypeCategories': ['issue',]}
@@ -72,7 +76,7 @@ if (json_events['ResponseMetadata']['HTTPStatusCode']) == 200:
             strUpdate = strUpdate.strftime(strDTMFormat)
             now = datetime.strftime(datetime.now(),strDTMFormat)
             if diff_dates(strUpdate, now) < intSeconds:
-		try: 
+	      try:
 		  response = SHDIssuesTable.get_item(
 		    Key = {
 			  'arn' : strArn
@@ -89,7 +93,8 @@ if (json_events['ResponseMetadata']['HTTPStatusCode']) == 200:
                      Item ={
                         'arn' : strArn,
                         'lastUpdatedTime' : strUpdate,
-                        'added' : now
+                        'added' : now,
+			'ttl' : int(now) + int(intSeconds) + 3600
                         }
                      )
 
@@ -104,25 +109,34 @@ if (json_events['ResponseMetadata']['HTTPStatusCode']) == 200:
                         )
                         json_event_details = json.dumps(event_details, cls=DatetimeEncoder)
                         parsed_event_details = json.loads (json_event_details)
-			print 'startTime: ',(event['startTime'])
-			print 'lastUpdatedTime: ',(event['lastUpdatedTime'])
-			print 'eventTypeCategory: ',(event['eventTypeCategory'])
-			print 'service: ',(event['service'])
-			print 'region: ',(event['region'])
-			print 'statusCode: ',(event['statusCode'])
-			print (parsed_event_details['successfulSet'][0]['eventDescription']['latestDescription'])#print parsed_event_details
+			healthMessage = (parsed_event_details['successfulSet'][0]['eventDescription']['latestDescription'])#print parsed_event_deta
+			statusCode = (event['statusCode'])
+			region = (event['region'])
+			eventTypeCode = (event['eventTypeCode'])
+			startTime = (event['startTime'])
+			lastUpdatedTime = (event['lastUpdatedTime'])
+			Category = (event['eventTypeCategory'])
+			Service = (event['service'])
+			eventName = str(eventTypeCode), ' - ', str(Service), ' - ', str(region)
+			healthMessage = '\n' + healthMessage + '\n\nService: ' + str(Service) + '\nRegion: ' + str(region) + '\nStatus: ' + str(statusCode)
+			print healthMessage
 			response = SHDIssuesTable.put_item(
                         Item ={
                           'arn' : strArn,
                           'lastUpdatedTime' : strUpdate,
-                          'added' : now
+                          'added' : now,
+			  'ttl' : int(now) + int(intSeconds) +  3600
                           }
                         )
-
+			snsPub = snsClient.publish(
+				Message = str(healthMessage),
+				Subject = str(eventName),
+				TopicArn = snsTopic
+                        )
 		     #print("GetItem succeeded:")
 		     #print(json.dumps(item, indent=4, cls=DecimalEncoder))
                 #print len(response)
-		bFound = False
+		#bFound = False
 		#isItemResponse = response.get('Item')
 		#print isItemResponse
 		#if isItemResponse == None:
@@ -144,13 +158,13 @@ if (json_events['ResponseMetadata']['HTTPStatusCode']) == 200:
 	
 		#print diff_dates(strUpdate, now),' ',strUpdate,' ', now
                 #print "%s %s" % (strArn, strUpdate)
-                event_details = client.describe_event_details (
-                eventArns=[
-                    strArn,
-                    ]
-                )
-                json_event_details = json.dumps(event_details, cls=DatetimeEncoder)
-                parsed_event_details = json.loads (json_event_details)
+                #event_details = client.describe_event_details (
+                #eventArns=[
+                #    strArn,
+                #    ]
+                #)
+                #json_event_details = json.dumps(event_details, cls=DatetimeEncoder)
+                #parsed_event_details = json.loads (json_event_details)
                 #print (parsed_event_details['successfulSet'][0]['eventDescription']['latestDescription'])#print parsed_event_details
 else:
     print datetime.now().strftime(strDTMFormat2),"- API call was not successful:",(json_events['ResponseMetadata']['HTTPStatusCode'])
