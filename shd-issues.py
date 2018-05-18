@@ -125,8 +125,8 @@ if (json_events['ResponseMetadata']['HTTPStatusCode']) == 200:
             update_ddb(SHDIssuesTable, strArn, strUpdate, now)
             healthMessage = get_healthMessage(client, event)
             eventName = get_healthSubject(event)
-            #print ("eventName: ", eventName)
-            #print ("healthMessage: ",healthMessage)
+            print ("eventName: ", eventName)
+            print ("healthMessage: ",healthMessage)
             send_sns(healthMessage, eventName, snsTopic)
 
           else:
@@ -136,8 +136,8 @@ if (json_events['ResponseMetadata']['HTTPStatusCode']) == 200:
               update_ddb(SHDIssuesTable, strArn, strUpdate, now)
               healthMessage = get_healthMessage(client, event)
               eventName = get_healthSubject(event)
-              #print ("eventName: ", eventName)
-              #print ("healthMessage: ",healthMessage)
+              print ("eventName: ", eventName)
+              print ("healthMessage: ",healthMessage)
               send_sns(healthMessage, eventName, snsTopic)
 else:
   print (datetime.now().strftime(strDTMFormat2)+"- API call was not successful: "+(json_events['ResponseMetadata']['HTTPStatusCode']))
