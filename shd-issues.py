@@ -69,6 +69,7 @@ json_events = json.loads (json_pre)
 if (json_events['ResponseMetadata']['HTTPStatusCode']) == 200:
   events = json_events.get('events')
   for event in events :
+    #print ("events for")
     strEventTypeCode = event['eventTypeCode']
     if strEventTypeCode.endswith(strSuffix):
       strArn = (event['arn'])
