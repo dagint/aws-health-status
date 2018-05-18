@@ -105,8 +105,8 @@ if (json_events['ResponseMetadata']['HTTPStatusCode']) == 200:
     strEventTypeCode = event['eventTypeCode']
     if strEventTypeCode.endswith(strSuffix):
       strArn = (event['arn'])
-      strUpdate = (event['lastUpdatedTime'])
-      strUpdate = parser.parse(strUpdate)
+      strUpdate = parser.parse((event['lastUpdatedTime']))
+      #strUpdate = parser.parse(strUpdate)
       strUpdate = strUpdate.strftime(strDTMFormat)
       now = datetime.strftime(datetime.now(),strDTMFormat)
       if diff_dates(strUpdate, now) < intSeconds:
