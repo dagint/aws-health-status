@@ -13,7 +13,7 @@ from botocore.exceptions import ClientError
 #used to determine if event is related to something in SHD
 strSuffix = "_OPERATIONAL_ISSUE"
 # ignore events past the x number of seconds 14400 = 4 hours
-intSeconds = 10*14400 #14400
+intSeconds = 14400 #14400
 #set standard date time format used throughout
 strDTMFormat2 = "%Y-%m-%d %H:%M:%S"
 strDTMFormat = '%s'
