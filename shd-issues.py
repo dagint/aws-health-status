@@ -19,10 +19,13 @@ strDTMFormat2 = "%Y-%m-%d %H:%M:%S"
 strDTMFormat = '%s'
 
 snsTopic = "arn:aws:sns:us-east-1:505657850914:page-ginterm"
+
 # if left blank it will use all regions.  if you are specifying specific regions use comma's with no spaces
 # if you are interested in global services you will need to include them in the list
-# example strRegions = "us-east-1,us-east-2,global"
-#strRegions = 'us-east-1,us-east-2'
+# this is a dictionary object and should be stored in the format example
+# example dictRegions = ['us-east-1','us-east-2','global']
+#dictRegions = ['us-east-1','us-east-2','global']
+dictRegions = ""
 
 def diff_dates(strDate1, strDate2):
     intSecs = float(strDate2)-float(strDate1)
@@ -38,8 +41,8 @@ def update_ddb(objTable, strArn, strUpdate, now):
       }
     )
 
-def get_healthMessage(client, event):
-    event_details = client.describe_event_details (
+def get_healthMessage(awshealth, event):
+    event_details = awshealth.describe_event_details (
       eventArns=[
         strArn,
       ]
@@ -81,7 +84,7 @@ class DecimalEncoder(json.JSONEncoder):
         return super(DecimalEncoder, self).default(o)
 
 # creates health object as client
-client = boto3.client('health')
+awshealth = boto3.client('health')
 
 dynamodb = boto3.resource("dynamodb", region_name='us-east-1')
 
@@ -89,7 +92,16 @@ SHDIssuesTable = dynamodb.Table('SHD_operational_issues')
 
 strFilter = {'eventTypeCategories': ['issue',]}
 
-response = client.describe_events (
+if dictRegions != "":
+	strFilter = {
+		'eventTypeCategories': [
+			'issue',
+		],
+		'regions': 
+			dictRegions
+	}
+
+response = awshealth.describe_events (
   filter=
     strFilter
   ,
@@ -123,7 +135,7 @@ if (json_events['ResponseMetadata']['HTTPStatusCode']) == 200:
           if isItemResponse == None:
             print (datetime.now().strftime(strDTMFormat2)+": record not found")
             update_ddb(SHDIssuesTable, strArn, strUpdate, now)
-            healthMessage = get_healthMessage(client, event)
+            healthMessage = get_healthMessage(awshealth, event)
             eventName = get_healthSubject(event)
             print ("eventName: ", eventName)
             print ("healthMessage: ",healthMessage)
@@ -134,7 +146,7 @@ if (json_events['ResponseMetadata']['HTTPStatusCode']) == 200:
             if item['lastUpdatedTime'] != strUpdate:
               print (datetime.now().strftime(strDTMFormat2)+": last Update is different")
               update_ddb(SHDIssuesTable, strArn, strUpdate, now)
-              healthMessage = get_healthMessage(client, event)
+              healthMessage = get_healthMessage(awshealth, event)
               eventName = get_healthSubject(event)
               print ("eventName: ", eventName)
               print ("healthMessage: ",healthMessage)
