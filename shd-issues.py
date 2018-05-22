@@ -3,7 +3,7 @@
 import boto3
 import json
 import decimal
-#import string
+import requests
 #import time
 from datetime import datetime
 from dateutil import parser
@@ -20,6 +20,7 @@ strDTMFormat = '%s'
 
 snsTopic = "arn:aws:sns:us-east-1:505657850914:page-ginterm"
 
+webHookUrl = ""
 # if left blank it will use all regions.  if you are specifying specific regions use comma's with no spaces
 # if you are interested in global services you will need to include them in the list
 # this is a dictionary object and should be stored in the format example
@@ -66,6 +67,22 @@ def get_healthSubject(event):
     eventName = str(event['eventTypeCode']), ' - ', str(event['service']), ' - ', str(event['region'])
     return eventName
 
+def send_webhook(updatedOn, subject, healthMessage, entryURL):
+	message = str(":fire: " + subject + " posted an update on " + updatedOn + "\n"
+		"-------------------------------------\n" +
+		healthMessage + "\n")
+	#print(message)
+
+	json.dumps(message)
+	chime_message = {'Content': message}
+	
+	try:
+		req = requests.post(entryURL, data=json.dumps(chime_message))
+	except HTTPError:
+		return False
+	return True
+
+	
 class DatetimeEncoder(json.JSONEncoder):
     def default(self, obj):
         try:
@@ -82,6 +99,8 @@ class DecimalEncoder(json.JSONEncoder):
             else:
                 return int(o)
         return super(DecimalEncoder, self).default(o)
+
+#send_webhook(now, subject, Message, webHookUrl)
 
 # creates health object as client
 awshealth = boto3.client('health')
@@ -140,6 +159,7 @@ if (json_events['ResponseMetadata']['HTTPStatusCode']) == 200:
             print ("eventName: ", eventName)
             print ("healthMessage: ",healthMessage)
             send_sns(healthMessage, eventName, snsTopic)
+            send_webhook(datetime.now().strftime(strDTMFormat2), eventName, healthMessage, webHookUrl)
 
           else:
             item = response['Item']
@@ -151,5 +171,6 @@ if (json_events['ResponseMetadata']['HTTPStatusCode']) == 200:
               print ("eventName: ", eventName)
               print ("healthMessage: ",healthMessage)
               send_sns(healthMessage, eventName, snsTopic)
+              send_webhook(datetime.now().strftime(strDTMFormat2), eventName, healthMessage, webHookUrl)
 else:
   print (datetime.now().strftime(strDTMFormat2)+"- API call was not successful: "+(json_events['ResponseMetadata']['HTTPStatusCode']))
