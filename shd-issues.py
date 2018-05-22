@@ -4,7 +4,7 @@ import boto3
 import json
 import decimal
 import requests
-#import time
+import configparser
 from datetime import datetime
 from dateutil import parser
 from boto3.dynamodb.conditions import Key, Attr
@@ -18,15 +18,18 @@ intSeconds = 14400 #14400
 strDTMFormat2 = "%Y-%m-%d %H:%M:%S"
 strDTMFormat = '%s'
 
-snsTopic = "arn:aws:sns:us-east-1:505657850914:page-ginterm"
-
-webHookUrl = ""
 # if left blank it will use all regions.  if you are specifying specific regions use comma's with no spaces
 # if you are interested in global services you will need to include them in the list
 # this is a dictionary object and should be stored in the format example
 # example dictRegions = ['us-east-1','us-east-2','global']
 #dictRegions = ['us-east-1','us-east-2','global']
 dictRegions = ""
+
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+snsTopic = config['default']['snsTopicArn']
+webHookURL = config ['default']['webHookURL']
 
 def diff_dates(strDate1, strDate2):
     intSecs = float(strDate2)-float(strDate1)
@@ -100,7 +103,7 @@ class DecimalEncoder(json.JSONEncoder):
                 return int(o)
         return super(DecimalEncoder, self).default(o)
 
-#send_webhook(now, subject, Message, webHookUrl)
+send_sns("test message", "eventName", snsTopic)
 
 # creates health object as client
 awshealth = boto3.client('health')
