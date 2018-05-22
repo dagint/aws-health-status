@@ -103,8 +103,6 @@ class DecimalEncoder(json.JSONEncoder):
                 return int(o)
         return super(DecimalEncoder, self).default(o)
 
-send_sns("test message", "eventName", snsTopic)
-
 # creates health object as client
 awshealth = boto3.client('health')
 
