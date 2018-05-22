@@ -29,7 +29,7 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 
 snsTopic = config['default']['snsTopicArn']
-webHookURL = config ['default']['webHookURL']
+webHookURL = config['default']['webHookURL']
 
 def diff_dates(strDate1, strDate2):
     intSecs = float(strDate2)-float(strDate1)
@@ -67,10 +67,16 @@ def send_sns(healthMessage, eventName, snsTopic):
 
 
 def get_healthSubject(event):
-    eventName = str(event['eventTypeCode']), ' - ', str(event['service']), ' - ', str(event['region'])
+    eventTypeCode = str(event['eventTypeCode'])
+    service = str(event['service'])
+    region =  str(event['region'])
+    eventName = eventTypeCode + ' - ' + service + ' - ' + region
     return eventName
 
 def send_webhook(updatedOn, subject, healthMessage, entryURL):
+	updatedOn = str(updatedOn)
+	subject = str(subject)
+	healthMessage = str(healthMessage)
 	message = str(":fire: " + subject + " posted an update on " + updatedOn + "\n"
 		"-------------------------------------\n" +
 		healthMessage + "\n")
@@ -160,7 +166,7 @@ if (json_events['ResponseMetadata']['HTTPStatusCode']) == 200:
             print ("eventName: ", eventName)
             print ("healthMessage: ",healthMessage)
             send_sns(healthMessage, eventName, snsTopic)
-            send_webhook(datetime.now().strftime(strDTMFormat2), eventName, healthMessage, webHookUrl)
+            send_webhook(datetime.now().strftime(strDTMFormat2), eventName, healthMessage, webHookURL)
 
           else:
             item = response['Item']
