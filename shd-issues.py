@@ -178,6 +178,6 @@ if (json_events['ResponseMetadata']['HTTPStatusCode']) == 200:
               print ("eventName: ", eventName)
               print ("healthMessage: ",healthMessage)
               send_sns(healthMessage, eventName, snsTopic)
-              send_webhook(datetime.now().strftime(strDTMFormat2), eventName, healthMessage, webHookUrl)
+              send_webhook(datetime.now().strftime(strDTMFormat2), eventName, healthMessage, webHookURL)
 else:
   print (datetime.now().strftime(strDTMFormat2)+"- API call was not successful: "+(json_events['ResponseMetadata']['HTTPStatusCode']))
