@@ -56,7 +56,7 @@ def get_healthMessage(awshealth, event):
     healthMessage = (parsed_event_details['successfulSet'][0]['eventDescription']['latestDescription'])#print parsed_event_deta
     healthMessage = '\n' + healthMessage + '\n\nService: ' + str(event['service']) + '\nRegion: ' + str(event['region']) + '\nStatus: ' + str(event['statusCode'])
     phdURL = 'https://phd.aws.amazon.com/phd/home?region=us-east-1#/event-log?eventID=' + strArn + '&eventTab=details&layout=vertical'
-    healthMessage = healthMessage + '\nPHD URL: ' + phdURL
+    healthMessage = healthMessage + '\n\nPHD URL: ' + phdURL
     return healthMessage
 
 def send_sns(healthMessage, eventName, snsTopic):
