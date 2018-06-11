@@ -15,15 +15,15 @@ Script polls the AWS Health API (personal health dashboard) to send notification
  * The ttl will wil expire the data using the variable intSeconds + 1 hour.  If you are using   defaults of the script it will be expire the table row after 5 hours 
 
 ## Configuration Items
-*Create and update config.ini or rename config.ini.sample in the same directory as the script and update snsTopicArn and WebHookURL.
-*You can enable or disable sns/webhook notifications
-*You can filter regions if you only care about specific regions.  Don't forget to include global as these can effect you and are not tied to a specific region
+* Create and update config.ini or rename config.ini.sample in the same directory as the script and update snsTopicArn and WebHookURL.
+* You can enable or disable sns/webhook notifications
+* You can filter regions if you only care about specific regions.  Don't forget to include global as these can effect you and are not tied to a specific region
 
 ## Setup
-*after you get all the requirements done and you have tested the script you can use cron to schedule it to run every minute
+after you get all the requirements done and you have tested the script you can use cron to schedule it to run every minute
 
 ## Policy
-*Update account number and specific the correct ARN for Dynamodb and SNSTopic
+* Update account number and specific the correct ARN for Dynamodb and SNSTopic
 ```
 {
     "Version": "2012-10-17",
