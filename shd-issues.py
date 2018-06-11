@@ -86,23 +86,23 @@ def get_healthSubject(event):
     return eventName
 
 def send_webhook(updatedOn, subject, healthMessage, entryURL):
-    if enableWebHook:
-        updatedOn = str(updatedOn)
-	subject = str(subject)
-	healthMessage = str(healthMessage)
-	message = str(":fire: " + subject + " posted an update on " + updatedOn + "\n"
-		"-------------------------------------\n" +
-		healthMessage + "\n")
-	#print(message)
+  if enableWebHook :
+    updatedOn = str(updatedOn)
+    subject = str(subject)
+    healthMessage = str(healthMessage)
+    message = str(":fire: " + subject + " posted an update on " + updatedOn + "\n"
+      "-------------------------------------\n" +
+    healthMessage + "\n")
+    #print(message)
 
-	json.dumps(message)
-	chime_message = {'Content': message}
+    json.dumps(message)
+    chime_message = {'Content': message}
 	
-	try:
-		req = requests.post(entryURL, data=json.dumps(chime_message))
-	except HTTPError:
-		return False
-	return True
+    try:
+      req = requests.post(entryURL, data=json.dumps(chime_message))
+    except HTTPError:
+      return False
+    return True
 
 	
 class DatetimeEncoder(json.JSONEncoder):
