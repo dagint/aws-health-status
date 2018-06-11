@@ -10,10 +10,17 @@ from dateutil import parser
 from boto3.dynamodb.conditions import Key, Attr
 from botocore.exceptions import ClientError
 
+# ignore events past the x number of seconds 14400 = 4 hours
+#intSeconds = 14400 #14400
+intSeconds = 144000 #14400
+
+# Send sns notfication True/False
+enableSNS = True
+# Send webhook notification True/False
+enableWebHook = True
+
 #used to determine if event is related to something in SHD
 strSuffix = "_OPERATIONAL_ISSUE"
-# ignore events past the x number of seconds 14400 = 4 hours
-intSeconds = 14400 #14400
 #set standard date time format used throughout
 strDTMFormat2 = "%Y-%m-%d %H:%M:%S"
 strDTMFormat = '%s'
@@ -28,8 +35,11 @@ dictRegions = ""
 config = configparser.ConfigParser()
 config.read('config.ini')
 
-snsTopic = config['default']['snsTopicArn']
-webHookURL = config['default']['webHookURL']
+if enableSNS == True :
+    snsTopic = config['default']['snsTopicArn']
+
+if enableWebHook == True:
+    webHookURL = config['default']['webHookURL']
 
 def diff_dates(strDate1, strDate2):
     intSecs = float(strDate2)-float(strDate1)
@@ -60,12 +70,13 @@ def get_healthMessage(awshealth, event):
     return healthMessage
 
 def send_sns(healthMessage, eventName, snsTopic):
-    snsClient = boto3.client('sns')
-    snsPub = snsClient.publish(
-      Message = str(healthMessage),
-      Subject = str(eventName),
-      TopicArn = snsTopic
-    )
+    if enableSNS: 
+      snsClient = boto3.client('sns')
+      snsPub = snsClient.publish(
+        Message = str(healthMessage),
+        Subject = str(eventName),
+        TopicArn = snsTopic
+      )
 
 def get_healthSubject(event):
     eventTypeCode = str(event['eventTypeCode'])
@@ -75,7 +86,8 @@ def get_healthSubject(event):
     return eventName
 
 def send_webhook(updatedOn, subject, healthMessage, entryURL):
-	updatedOn = str(updatedOn)
+    if enableWebHook:
+        updatedOn = str(updatedOn)
 	subject = str(subject)
 	healthMessage = str(healthMessage)
 	message = str(":fire: " + subject + " posted an update on " + updatedOn + "\n"
