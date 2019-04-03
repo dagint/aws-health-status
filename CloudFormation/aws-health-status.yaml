@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Metadata:
+  License: Apache-2.0
+Description: 'DynamoDB creation'
+Parameters:
+  TimeToLiveSeconds:
+    Description: "Timeout DDB records should expire in seconds default 14400=4hrs"
+    Default: "14400"
+    Type: Number
+  Notify:
+    Description: "Email address to notify, CreateSNSTopic would need to be true"
+    Type: String
+  CreateSNSTopic:
+    Description: "Whether I should create SNS Topic"
+    Default: false
+    Type: String
+    AllowedValues: [true, false]
+  WebhookURL:
+    Description: "Webhook URL, CreateWebHook would need to be true"
+    Type: String
+  CreateWebHook:
+    Description: "Whether I should enable webhooks"
+    Default: false
+    Type: String
+    AllowedValues: [true, false]
+Conditions:
+  ShouldCreateSNS:
+    !Equals [true, !Ref CreateSNSTopic]
+  ShouldCreateWebHook:
+    !Equals [true, !Ref CreateWebHook]
+Resources:
+  SHDIssuesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: "arn"
+        AttributeType: "S"
+      KeySchema:
+      - AttributeName: "arn"
+        KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: "5"
+        WriteCapacityUnits: "5"
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: TRUE
+  SHDConfigTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: "Type"
+        AttributeType: "S"
+      KeySchema:
+      - AttributeName: "Type"
+        KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: "5"
+        WriteCapacityUnits: "5"
+  SHDSNSTopic:
+    Type: AWS::SNS::Topic
+    Condition: ShouldCreateSNS
+    Properties:
+      Subscription:
+        - Endpoint: !Ref 'Notify'
+          Protocol: "email"
+      TopicName: "SHDNotify"
+Outputs:
+  TableIssueName:
+    Value: !Ref 'SHDIssuesTable'
+    Description: Table issues name of the newly created DynamoDB table
+  TableConfigName:
+    Value: !Ref 'SHDConfigTable'
+    Description: Table config name of the newly created DynamoDB table
