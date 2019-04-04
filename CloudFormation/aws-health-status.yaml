@@ -16,9 +16,9 @@ Parameters:
     Type: String
     AllowedValues: [true, false]
   WebhookURL:
-    Description: "Webhook URL, CreateWebHook would need to be true"
+    Description: "Webhook URL, CreateWebwook would need to be true"
     Type: String
-  CreateWebHook:
+  CreateWebhook:
     Description: "Whether I should enable webhooks"
     Default: false
     Type: String
@@ -26,8 +26,10 @@ Parameters:
 Conditions:
   ShouldCreateSNS:
     !Equals [true, !Ref CreateSNSTopic]
-  ShouldCreateWebHook:
-    !Equals [true, !Ref CreateWebHook]
+  ShouldCreateWebhook:
+    !Equals [true, !Ref CreateWebhook]
+  WebhookNull:
+    !Equals ["", !Ref WebhookURL]
 Resources:
   SHDIssuesTable:
     Type: AWS::DynamoDB::Table
@@ -44,18 +46,6 @@ Resources:
       TimeToLiveSpecification:
         AttributeName: ttl
         Enabled: TRUE
-  SHDConfigTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      AttributeDefinitions:
-      - AttributeName: "Type"
-        AttributeType: "S"
-      KeySchema:
-      - AttributeName: "Type"
-        KeyType: "HASH"
-      ProvisionedThroughput:
-        ReadCapacityUnits: "5"
-        WriteCapacityUnits: "5"
   SHDSNSTopic:
     Type: AWS::SNS::Topic
     Condition: ShouldCreateSNS
@@ -64,10 +54,35 @@ Resources:
         - Endpoint: !Ref 'Notify'
           Protocol: "email"
       TopicName: "SHDNotify"
+  SNSParameter:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: "/SHDIssues/SNS/Topic"
+      Type: "String"
+      Value: !If [ShouldCreateSNS, !Ref SHDSNSTopic, "empty"]
+      Description: "SNS Topic Arn"
+  SNSEnabledParameter:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: "/SHDIssues/SNS/Enabled"
+      Type: "String"
+      Value: !If [ShouldCreateSNS, true, false]
+      Description: "Is SNS notification Enabled"
+  WebhookParameter:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: "/SHDIssues/Webhook/URL"
+      Type: "String"
+      Value: !If [WebhookNull, "empty", !Ref WebhookURL]
+      Description: "Webhook URL"
+  WebhookEnabledParameter:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: "/SHDIssues/Webhook/Enabled"
+      Type: "String"
+      Value: !If [ShouldCreateWebhook, true, false]
+      Description: "Is Webhook notification Enabled"        
 Outputs:
   TableIssueName:
     Value: !Ref 'SHDIssuesTable'
     Description: Table issues name of the newly created DynamoDB table
-  TableConfigName:
-    Value: !Ref 'SHDConfigTable'
-    Description: Table config name of the newly created DynamoDB table
