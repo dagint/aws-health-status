@@ -2,15 +2,39 @@ AWSTemplateFormatVersion: '2010-09-09'
 Metadata:
   License: Apache-2.0
 Description: 'DynamoDB creation'
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: "Environment Variables"
+        Parameters:
+          - EnvTimeToLiveSeconds
+          - EnvRegions
+      -
+        Label:
+          default: "SNS Configuration"
+        Parameters:
+          - SNSTopicCreate
+          - SNSNotify
+      -
+        Label:
+          default: "Webhook"
+        Parameters:
+          - WebhookCreate
+          - WebhookURL
 Parameters:
-  TimeToLiveSeconds:
+  EnvTimeToLiveSeconds:
     Description: "Timeout DDB records should expire in seconds default 14400=4hrs"
     Default: "14400"
     Type: Number
-  Notify:
+  EnvRegions:
+    Description: "List of specific regions you would like to be alerted on.  If left blank it will alert on all regions.  ie 'us-east-1','us-east-2','global'"
+    Type: String
+  SNSNotify:
     Description: "Email address to notify, CreateSNSTopic would need to be true"
     Type: String
-  CreateSNSTopic:
+  SNSTopicCreate:
     Description: "Whether I should create SNS Topic"
     Default: false
     Type: String
@@ -18,16 +42,16 @@ Parameters:
   WebhookURL:
     Description: "Webhook URL, CreateWebwook would need to be true"
     Type: String
-  CreateWebhook:
+  WebhookCreate:
     Description: "Whether I should enable webhooks"
     Default: false
     Type: String
     AllowedValues: [true, false]
 Conditions:
   ShouldCreateSNS:
-    !Equals [true, !Ref CreateSNSTopic]
+    !Equals [true, !Ref SNSTopicCreate]
   ShouldCreateWebhook:
-    !Equals [true, !Ref CreateWebhook]
+    !Equals [true, !Ref WebhookCreate]
   WebhookNull:
     !Equals ["", !Ref WebhookURL]
 Resources:
@@ -51,7 +75,7 @@ Resources:
     Condition: ShouldCreateSNS
     Properties:
       Subscription:
-        - Endpoint: !Ref 'Notify'
+        - Endpoint: !Ref 'SNSNotify'
           Protocol: "email"
       TopicName: "SHDNotify"
   SNSParameter:
@@ -81,8 +105,60 @@ Resources:
       Name: "/SHDIssues/Webhook/Enabled"
       Type: "String"
       Value: !If [ShouldCreateWebhook, true, false]
-      Description: "Is Webhook notification Enabled"        
+      Description: "Is Webhook notification Enabled"
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Condition: ShouldCreateSNS
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: SHDIssuesRole
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:*
+            Resource: arn:aws:logs:*:*:*
+          - Effect: Allow
+            Action:
+              - health:*
+              - dynamodb:ListTables
+              - ssm:DescribeParameters
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - 'ssm:GetParameter*'
+            Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/SHDIssues*'
+          - Effect: Allow
+            Action:
+              - sns:Publish
+            Resource: !Ref SHDSNSTopic
+          - Effect: Allow
+            Action:
+              - dynamodb:UpdateTimeToLive
+              - dynamodb:PutItem
+              - dynamodb:DeleteItem
+              - dynamodb:GetItem
+              - dynamodb:Scan
+              - dynamodb:Query
+              - dynamodb:UpdateItem
+              - dynamodb:UpdateTable
+              - dynamodb:GetRecords
+            Resource: !GetAtt SHDIssuesTable.Arn
 Outputs:
   TableIssueName:
     Value: !Ref 'SHDIssuesTable'
     Description: Table issues name of the newly created DynamoDB table
+  SSMValue:
+    Value: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/SHDIssues*'
+    Description: Some shit
