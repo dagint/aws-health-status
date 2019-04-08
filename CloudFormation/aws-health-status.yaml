@@ -17,12 +17,6 @@ Metadata:
         Parameters:
           - SNSTopicCreate
           - SNSNotify
-      -
-        Label:
-          default: "Webhook"
-        Parameters:
-          - WebhookCreate
-          - WebhookURL
 Parameters:
   EnvTimeToLiveSeconds:
     Description: "Timeout DDB records should expire in seconds default 14400=4hrs"
@@ -39,21 +33,9 @@ Parameters:
     Default: false
     Type: String
     AllowedValues: [true, false]
-  WebhookURL:
-    Description: "Webhook URL, CreateWebwook would need to be true"
-    Type: String
-  WebhookCreate:
-    Description: "Whether I should enable webhooks"
-    Default: false
-    Type: String
-    AllowedValues: [true, false]
 Conditions:
   ShouldCreateSNS:
     !Equals [true, !Ref SNSTopicCreate]
-  ShouldCreateWebhook:
-    !Equals [true, !Ref WebhookCreate]
-  WebhookNull:
-    !Equals ["", !Ref WebhookURL]
 Resources:
   SHDIssuesTable:
     Type: AWS::DynamoDB::Table
@@ -78,34 +60,6 @@ Resources:
         - Endpoint: !Ref 'SNSNotify'
           Protocol: "email"
       TopicName: "SHDNotify"
-  SNSParameter:
-    Type: "AWS::SSM::Parameter"
-    Properties:
-      Name: "/SHDIssues/SNS/Topic"
-      Type: "String"
-      Value: !If [ShouldCreateSNS, !Ref SHDSNSTopic, "empty"]
-      Description: "SNS Topic Arn"
-  SNSEnabledParameter:
-    Type: "AWS::SSM::Parameter"
-    Properties:
-      Name: "/SHDIssues/SNS/Enabled"
-      Type: "String"
-      Value: !If [ShouldCreateSNS, true, false]
-      Description: "Is SNS notification Enabled"
-  WebhookParameter:
-    Type: "AWS::SSM::Parameter"
-    Properties:
-      Name: "/SHDIssues/Webhook/URL"
-      Type: "String"
-      Value: !If [WebhookNull, "empty", !Ref WebhookURL]
-      Description: "Webhook URL"
-  WebhookEnabledParameter:
-    Type: "AWS::SSM::Parameter"
-    Properties:
-      Name: "/SHDIssues/Webhook/Enabled"
-      Type: "String"
-      Value: !If [ShouldCreateWebhook, true, false]
-      Description: "Is Webhook notification Enabled"
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Condition: ShouldCreateSNS
@@ -133,12 +87,7 @@ Resources:
             Action:
               - health:*
               - dynamodb:ListTables
-              - ssm:DescribeParameters
             Resource: "*"
-          - Effect: Allow
-            Action:
-              - 'ssm:GetParameter*'
-            Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/SHDIssues*'
           - Effect: Allow
             Action:
               - sns:Publish
@@ -155,6 +104,25 @@ Resources:
               - dynamodb:UpdateTable
               - dynamodb:GetRecords
             Resource: !GetAtt SHDIssuesTable.Arn
+  LambdaAwsHealthStatus:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Handler: "lambda_function.lambda_handler"
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: "python3.7"
+      Timeout: "90"
+      Description: "Lambda code to determine if a SHD update has posted"
+      FunctionName: "aws-status-health"
+      Code:
+        S3Bucket: "aws-status-health"
+        S3Key: "aws-health-status.zip"
+      Environment:
+        Variables:
+          regions: !Ref EnvRegions
+          ttl: !Ref EnvTimeToLiveSeconds
+          enableSNS: !If [ShouldCreateSNS, true, false]
+          SNSTopic: !If [ShouldCreateSNS, !Ref SHDSNSTopic, "empty"]
+          ddbTable: !Ref SHDIssuesTable
 Outputs:
   TableIssueName:
     Value: !Ref 'SHDIssuesTable'
