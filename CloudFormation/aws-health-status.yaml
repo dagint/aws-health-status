@@ -7,6 +7,12 @@ Metadata:
     ParameterGroups:
       -
         Label:
+          Default: "Lambda code S3 bucket and key location"
+        Parameters:
+          - S3CodeBucket
+          - S3CodeZip
+      -
+        Label:
           default: "Environment Variables"
         Parameters:
           - EnvTimeToLiveSeconds
@@ -33,6 +39,12 @@ Parameters:
     Default: false
     Type: String
     AllowedValues: [true, false]
+  S3CodeBucket:
+    Description: "S3 bucket name of where zipped code is stored.  Needs to be in the same region you are launching this in."
+    Type: String
+  S3CodeZip:
+    Description: "S3 key name of code zip file (path and filename)"
+    Type: String
 Conditions:
   ShouldCreateSNS:
     !Equals [true, !Ref SNSTopicCreate]
@@ -112,10 +124,10 @@ Resources:
       Runtime: "python3.7"
       Timeout: "90"
       Description: "Lambda code to determine if a SHD update has posted"
-      FunctionName: "aws-status-health"
+      FunctionName: "aws-health-status"
       Code:
-        S3Bucket: "aws-status-health"
-        S3Key: "aws-health-status.zip"
+        S3Bucket: !Ref S3CodeBucket
+        S3Key: !Ref S3CodeZip
       Environment:
         Variables:
           regions: !Ref EnvRegions
