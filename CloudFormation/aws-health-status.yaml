@@ -1,7 +1,10 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Metadata:
   License: Apache-2.0
-Description: 'CloudFormation creates needed code and infrastructure to poll the AWS Health API every 1 minute to determine if there is any AWS Status Health Dashboard events effecting specific services in specific regions.  Creates several resources (DynamoDB Table, SNSTopic, CloudWatch Events, Lambda Function) and grants the appropriate IAM permissions.  '
+Description: 'CloudFormation creates needed code and infrastructure to poll the AWS Health
+API every 1 minute to determine if there is any AWS Status Health Dashboard events effecting
+specific services in specific regions.  Creates several resources (DynamoDB Table, SNSTopic,
+CloudWatch Events, Lambda Function) and grants the appropriate IAM permissions.  '
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
