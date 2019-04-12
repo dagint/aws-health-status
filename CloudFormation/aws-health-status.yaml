@@ -123,6 +123,24 @@ Resources:
           enableSNS: !If [ShouldCreateSNS, true, false]
           SNSTopic: !If [ShouldCreateSNS, !Ref SHDSNSTopic, "empty"]
           ddbTable: !Ref SHDIssuesTable
+  SHDScheduledRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "SHDScheduledRule"
+      ScheduleExpression: "rate(1 minute)"
+      State: "ENABLED"
+      Targets:
+        -
+          Arn: !GetAtt LambdaAwsHealthStatus.Arn
+          Id: "TargetFunctionV1"
+  PermissionForEventsToInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Ref: "LambdaAwsHealthStatus"
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt SHDScheduledRule.Arn
 Outputs:
   TableIssueName:
     Value: !Ref 'SHDIssuesTable'
