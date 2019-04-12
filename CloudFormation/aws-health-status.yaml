@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Metadata:
   License: Apache-2.0
-Description: 'DynamoDB creation'
+Description: 'CloudFormation creates needed code and infrastructure to poll the AWS Health API every 1 minute to determine if there is any AWS Status Health Dashboard events effecting specific services in specific regions.  Creates several resources (DynamoDB Table, SNSTopic, CloudWatch Events, Lambda Function) and grants the appropriate IAM permissions.  '
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -25,7 +25,7 @@ Metadata:
           - SNSNotify
 Parameters:
   EnvTimeToLiveSeconds:
-    Description: "Timeout DDB records should expire in seconds default 14400=4hrs"
+    Description: "Timeout DynamoDB records should expire in seconds default 14400=4hrs"
     Default: "14400"
     Type: Number
   EnvRegions:
@@ -157,6 +157,3 @@ Outputs:
   TableIssueName:
     Value: !Ref 'SHDIssuesTable'
     Description: Table issues name of the newly created DynamoDB table
-  SSMValue:
-    Value: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/SHDIssues*'
-    Description: Some shit
