@@ -34,6 +34,8 @@ Parameters:
   SNSNotify:
     Description: "Email address to notify, CreateSNSTopic would need to be true"
     Type: String
+    AllowedPattern: /[^\s@]+@[^\s@]+\.[^\s@]+/
+    ConstraintDescription: You should enter a valid email
   SNSTopicCreate:
     Description: "Whether I should create SNS Topic"
     Default: false
