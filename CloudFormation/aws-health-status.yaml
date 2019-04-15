@@ -32,10 +32,8 @@ Parameters:
     Description: "List of specific regions you would like to be alerted on.  If left blank it will alert on all regions.  ie 'us-east-1','us-east-2','global'"
     Type: String
   SNSNotify:
-    Description: "Email address to notify, CreateSNSTopic would need to be true"
+    Description: "Email address to notify, SNSTopicCreate would need to be true"
     Type: String
-    AllowedPattern: /[^\s@]+@[^\s@]+\.[^\s@]+/
-    ConstraintDescription: You should enter a valid email
   SNSTopicCreate:
     Description: "Whether I should create SNS Topic"
     Default: false
